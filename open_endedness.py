@@ -77,6 +77,7 @@ def make_image_with_parents(noun, potential_parents=None):
                   pixel_size= [16, 16],
                   scale=1, 
                   iterations=100, 
+                  init_noise='gradient',
                   init_image=None, 
                   outdir=f'outputs/{noun}/ACTUAL', 
                   make_video=False, 
@@ -87,14 +88,17 @@ def make_image_with_parents(noun, potential_parents=None):
     if potential_parents is None:
         pixray.run(**kwargs)
     else:
+        losses = []
         for parent in potential_parents:
             kwargs['init_image'] = f'outputs/{parent}/ACTUAL/output.png'
             kwargs['outdir'] = f'outputs/{noun}/{parent}/'
             pixray.run(**kwargs)
-        shutil.copytree(f'outputs/{noun}/{potential_parents[0]}', f'outputs/{noun}/ACTUAL')
+            losses.append(pixray.best_loss.item())
+        best_parent = potential_parents[np.argmin(np.array(losses))]
+        shutil.copytree(f'outputs/{noun}/{best_parent}', f'outputs/{noun}/ACTUAL')
 
 random.seed(1)
-def open_ended_run(seed_concept='dog', novelty_metric=None, n_children=3, n_gen=100):
+def open_ended_run(seed_concept='dog', novelty_metric=None, n_children=2, n_gen=100):
     """
     novelty_metric can be either min or avg
     """
@@ -142,7 +146,7 @@ def open_ended_run(seed_concept='dog', novelty_metric=None, n_children=3, n_gen=
         min_dists.append(min_dist_to_pop[idx].mean().item())
         avg_dists.append(avg_dist_to_pop[idx].mean().item())
         
-        potential_img_seeds = np.array(pop)[np.random.permutation(len(pop))[:3]]
+        potential_img_seeds = np.array(pop)[np.random.permutation(len(pop))[:2]]
         
         pop.extend(children[idx])
         pop_set.update(children[idx])
@@ -158,14 +162,11 @@ def open_ended_run(seed_concept='dog', novelty_metric=None, n_children=3, n_gen=
             
             make_image_with_parents(child, potential_parents=potential_img_seeds)
             
-            
-            
         concept = random.choice(list(pop_set.difference(parents)))
             
-        if i%10==0:
-            torch.save(pop, 'outputs/pop.pth')
-            torch.save(children_data, 'outputs/children_data.pth')
-            torch.save(parent_data, 'outputs/parent_data.pth')
+        torch.save(pop, 'outputs/pop.pth')
+        torch.save(children_data, 'outputs/children_data.pth')
+        torch.save(parent_data, 'outputs/parent_data.pth')
         
         # rather than randomly sampling a concept from the set, we should use a queue which priorirtizes novel concepts
         # rather than computing how novel a concept is each time (which takes n^2).
@@ -184,4 +185,4 @@ def open_ended_run(seed_concept='dog', novelty_metric=None, n_children=3, n_gen=
         
         
 if __name__=="__main__":
-    open_ended_run('spoon', novelty_metric='min', n_gen=100000)
+    open_ended_run('car', novelty_metric='min', n_gen=100000)
