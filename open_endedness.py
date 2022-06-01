@@ -27,6 +27,9 @@ min_time_between_calls = 2.
 
 time_previous_call = time.perf_counter_ns()
 
+
+create_images = False
+
 def calc_children_concepts(concept, prompt="In a comma-separated list, give me ten one-word objects related to '{}':"):
     global time_previous_call
     time_call = time.perf_counter_ns()
@@ -113,7 +116,9 @@ def open_ended_run(seed_concept='dog', novelty_metric=None, n_children=2, n_gen=
     avg_dists = []
     
     concept = seed_concept
-    make_image_with_parents(seed_concept, potential_parents=None)
+    
+    if create_images:
+        make_image_with_parents(seed_concept, potential_parents=None)
     
     
     children_data = {}
@@ -160,6 +165,7 @@ def open_ended_run(seed_concept='dog', novelty_metric=None, n_children=2, n_gen=
             children_data[concept].append(child)
             parent_data[child] = concept
             
+        if create_images:
             make_image_with_parents(child, potential_parents=potential_img_seeds)
             
         concept = random.choice(list(pop_set.difference(parents)))
@@ -185,4 +191,4 @@ def open_ended_run(seed_concept='dog', novelty_metric=None, n_children=2, n_gen=
         
         
 if __name__=="__main__":
-    open_ended_run('car', novelty_metric='min', n_gen=100000)
+    open_ended_run('tree', novelty_metric='min', n_gen=100000)
