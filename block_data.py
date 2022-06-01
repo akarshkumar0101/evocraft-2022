@@ -14,6 +14,7 @@ import time
 
 import torch
 
+from tqdm import tqdm
 
 channel = grpc.insecure_channel('localhost:5001')
 client = minecraft_pb2_grpc.MinecraftServiceStub(channel)
@@ -137,6 +138,15 @@ def clear_area(minx, maxx, miny, maxy, minz, maxz):
         ),
         type=AIR
     ))
+    client.fillCube(FillCubeRequest(
+        cube=Cube(
+            min=Point(x=minx, y=3, z=minz),
+            max=Point(x=maxx, y=3, z=maxz)
+        ),
+        type=GRASS
+    ))
+
+
 def clear_area_workspace():
     clear_area(-256, 256, 4, 15, -256, 256)
     
@@ -163,18 +173,19 @@ def main():
 
     name2coor = {}
 
-    for circle_id in range(4):
+    for circle_id in range(7):
+        print(f'Starting circle {circle_id}')
         r = circle_id*23
-        print(r)
+        # print(r)
         n_pics = max(1, int(2*np.pi*r / 25))
-        print(n_pics)
+        # print(n_pics)
 
 
-        for theta in np.linspace(0, 2*np.pi, n_pics+1)[:-1]:
+        for theta in tqdm(np.linspace(0, 2*np.pi, n_pics+1)[:-1]):
             x = int(r*np.cos(theta))
             z = int(r*np.sin(theta))
-            print(theta)
-            print(x, z)
+            # print(theta)
+            # print(x, z)
 
             name = pop[imgi]
             imgi+=1
@@ -184,7 +195,8 @@ def main():
             img = plt.imread(f'outputs/{name}/ACTUAL/output.png')
             img = img[::img.shape[0]//16, ::img.shape[1]//16, :]
 
-            mc_spawn_img(img, x, 5, z, center=True)
+            # mc_spawn_img(img, x, 5, z, center=True)
+            animate_img_path(name, x, 5, z, center=True, time_step=.1)
 
             if name in parent_data:
                 parent_name = parent_data[name]
@@ -196,7 +208,7 @@ def main():
         print()
 
 
-def animate_img_path(name, x, y, z, center=True, time_step=0.1):
+def animate_img_path(name, x, y, z, center=True, time_step=0.1, inc_height=False):
     path = f'outputs/{name}/ACTUAL/steps'
     img_names = os.listdir(path)
     img_names.sort()
@@ -204,7 +216,8 @@ def animate_img_path(name, x, y, z, center=True, time_step=0.1):
         img = plt.imread(f'{path}/{img_name}')
         img = img[::img.shape[0]//16, ::img.shape[1]//16, :]
         mc_spawn_img(img, x, y, z, center=center)
-        y+=1
+        if inc_height:
+            y+=1
         time.sleep(time_step)
 
 
